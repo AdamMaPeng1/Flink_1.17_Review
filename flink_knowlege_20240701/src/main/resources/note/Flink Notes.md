@@ -202,7 +202,7 @@
               上传lib,plugins文件夹内容到HDFS: hdfs dfs -put /opt/flink/lib/ /flink-dist;hdfs dfs -put /opt/flink/plugins /flink-dist
             2) 创建hdfs文件，供Flink应用程序上传： hdfs dfs -mkdir /flink-jars
                上传自定义数据包：hdfs dfs -put xxxWordCount.jar /flink-jars
-            3)提交作业：bin/flink run-application -t yarn-application -Dyarn.provided.lib.dirs="hdfs://hadoop102:8020/flink-dist" hdfs://hadoop102:8020/flink-jars/xxx.jar
+            3)提交作业：bin/flink run-application -t yarn-application -Dyarn.provided.lib.dirs="hdfs://hadoop102:8020/flink-dist" -c xxxWordCount hdfs://hadoop102:8020/flink-jars/xxx.jar
    K8S 模式
    MESOS模式 
 5. 配置历史服务器
@@ -212,7 +212,69 @@
    4) 开启历史服务器：bin/historyserver.sh start 
    5) 关闭历史服务器：bin/historyserver.sh stop 
 
+补充：
+1.Standalone-session模式：取消作业： bin/flink cancel xxxJobId
+2.查看Flink的版本：bin/flink -v ; bin/flink --version 
+3.查看当前有哪些Flink作业：bin/flink list 
 
+第4章 Flink运行时架构
+1. 系统架构
+   Flink集群的角色：Client， JobManager， TaskManager
+    任务执行流程：
+        1.脚本启动执行，开启Client，Client先解析参数，生成StreamGraph逻辑流图，然后逻辑流图转化为JobGraph作业图，紧接着封装提交参数
+        3.Client通过自身的rpc通信系统与JobManager的rpc通信系统进行通信，将Flink作业提交给JobManager
+        4.JobManager的Dispatcher收到Flink作业后，会开启对应的JobMaster
+        5.JobMaster将Flink作业的作业图转换为执行图，并且向JobManager中的ResourceManager请求Slot资源
+        6.ResourceManager向TakManager发起Slot请求，TaskManager将自身的slot数量向JobMaster申报。
+        7.JobMaster分配任务给TaskManager执行，TaskManager收到作业后，将执行图转化为物理流图。 
+    注：Flink集群中必须至少有一个TaskManager。TaskManager都包含一定数量的任务槽。slot数量限制了TaskManager能够并行处理的任务数量。
+2. 核心概念
+    2.1 并行度
+        1.概念：一个特定算子的并行执行的子任务个数，称之为并行度。
+          1）包含并行子任务的数据流，就是并行数据流。
+          2）流程序的并行度：等于所有算子中最大的并行度
+        2.设置并行度
+          1）代码中：单个算子-map.setParallelism(2);
+                   所有算子-env.setParallelism(2);
+          2) 任务提交时：bin/flink run -p 2 -m hadoop102:8081 xxxwordCount xxx.jar
+          3) 配置文件中：parallelism.default: 2 
+          优先级： 代码中-单个算子 > 代码中-所有算子 > 任务提交时 > 默认文件中
+          注： 开发环境中，没有配置文件，默认并行度为机器的核心数
+    2.2 算子链
+        1.前置知识：算子之间数据交换的方式
+          1） One-To-One，forwarding直通模式：数据流维护着分区和元素顺序。
+          2） Redistributing 重分区模式 ：数据流的分区会发生改变，会引起重分区
+        2.合并算子链：
+          概念：当算子之间的数据交换方式为one-to-one,forwarding 方式，并且并行度相同时，会进行算子链的合并，合并后的算子链，共用一个Slot来处理任务
+          优势：1）减少基于缓存的数据交换 2） 较少线程之间的切换   --> 是非常有利的优化
+          代码中：
+               1）禁用算子链：    map.disableChaining();
+               2) 开启新的算子链：map.startNewChain();
+    2.3 任务槽
+        1.概念：Flink中TaskManager是一个进程，而算子的任务则为TaskManager中的线程，任务在任务槽中执行，任务槽提供任务执行的CPU和内存资源。Slot隔离内存，每个任务有单独的内存来进行执行。
+               Flink提供资源的最小单元-Slot。不同算子的子任务可以共享任务槽。
+        2.设置：vim /opt/flink/conf/flink-conf.yaml     taskmanager.numberOfTaskSlots: 8 
+    2.4 任务槽和并行度的关系
+        1）任务槽是静态的概念，并行度是动态的概念。 
+        2）任务槽代表了TaskManager的并发执行的能力，可通过 taskmanager.numberOfTaskSlots;
+        3）并行度代表了TaskManager运行程序时实际使用的能力，可通过 parallelism.default进行设置
+        4）怎么设置并行度效率最高：将并行度设置为所有可用的slot 数量。
+        5）整个流的并行度，应该是所有算子并行度中最大的那个，代表了运行程序需要的slot数量。
+3. 作业提交流程
+    3.1 Standalone 会话模式作业提交流程
+        1.脚本启动执行，开启Client，Client先解析参数，生成StreamGraph逻辑流图，然后逻辑流图转化为JobGraph作业图，紧接着封装提交参数
+        2.Client通过自身的rpc通信系统与JobManager的rpc通信系统进行通信，将Flink作业提交给JobManager
+        3.JobManager的Dispatcher收到Flink作业后，会开启对应的JobMaster
+        4.JobMaster将Flink作业的作业图转换为执行图，并且向JobManager中的ResourceManager请求Slot资源
+        5.ResourceManager向TakManager发起Slot请求，TaskManager将自身的slot数量向JobMaster申报。
+        6.JobMaster分配任务给TaskManager执行，TaskManager收到作业后，将执行图转化为物理流图。
+        注：Flink集群中必须至少有一个TaskManager。TaskManager都包含一定数量的任务槽。slot数量限制了TaskManager能够并行处理的任务数量。
+    3.2 逻辑流图/作业图/执行图/物理流图
+        逻辑流图： 根据DataStream API 生成最初的DAG图，用来表示程序的拓扑结构
+        作业图  ： 针对逻辑流图，将可以进行算子链合并的算子进行合并，减少数据的交换和线程的切换，提升效率
+        执行图  ： JobManager将作业图转换成执行图，展示出算子的并行化版本
+        物理流图： JobManager将执行图发送给TaskManager，TaskManager从而生成物理流图，进一步确定数据存放的位置和收发的具体方式。
+    3.3 YARN应用模式作业提交流程
 
 
 
