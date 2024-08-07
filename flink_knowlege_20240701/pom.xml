@@ -17,7 +17,78 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--添加 Flink 版本-->
         <flink.version>1.17.0</flink.version>
+        <flink.connector.version>1.16.1</flink.connector.version>
+        <clickhouse-jdbc.version>0.4.4</clickhouse-jdbc.version>
     </properties>
+
+    <dependencies>
+        <!--引入 Lombok依赖-->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.28</version>
+        </dependency>
+
+        <!--Flink-connector-jdbc-->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-jdbc</artifactId>
+            <version>${flink.connector.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--clickhouse-jdbc-->
+<!--        <dependency>
+            <groupId>com.clickhouse</groupId>
+            <artifactId>clickhouse-jdbc</artifactId>
+            <version>${clickhouse-jdbc.version}</version>
+            <scope>provided</scope>
+        </dependency>-->
+
+        <!-- flink-connector-clickhouse -->
+        <dependency>
+            <groupId>cn.percent.flink</groupId>
+            <artifactId>flink-connector-clickhouse</artifactId>
+            <version>${flink.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--flink-connector-base-->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-base</artifactId>
+            <version>${flink.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--flink-connector-file-->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-files</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+        <!--flink-connector-datagen-->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-datagen</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+        <!--flink-connector-kafka-->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-kafka</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+        <!-- JUnit 5 Dependency -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.7.0</version>
+        </dependency>
+    </dependencies>
 
 
     <build>
