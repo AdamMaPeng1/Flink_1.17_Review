@@ -2,7 +2,9 @@ package cn.percent.wc;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
+import org.apache.flink.streaming.api.environment.LocalStreamEnvironment;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
 
@@ -16,7 +18,9 @@ import java.util.Map;
 public class SocketWordCountDemo {
     public static void main(String[] args) throws Exception {
         // 1. 创建执行环境
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+//        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
+//        LocalStreamEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(new Configuration());
         //2. 读取socket数据，创建数据源 Source
         DataStreamSource<String> socketTextStream = env.socketTextStream("hadoop102", 7777);
 

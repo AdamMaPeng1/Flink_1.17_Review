@@ -276,7 +276,12 @@
         物理流图： JobManager将执行图发送给TaskManager，TaskManager从而生成物理流图，进一步确定数据存放的位置和收发的具体方式。
     3.3 YARN应用模式作业提交流程
 
+第 5 章 DataStream API 
+5.1 执行环境
 
+5.2 源算子
+5.3 转换算子
+5.4 输出算子
 
 
 

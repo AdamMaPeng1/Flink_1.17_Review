@@ -20,7 +20,7 @@ public class WordCountDataStreamDemo {
         env.setRuntimeMode(RuntimeExecutionMode.BATCH);
 
         //2.读取文件，创建数据源
-        DataStreamSource<String> stringDataStreamSource = env.readTextFile("F:\\个人学习\\大数据复习\\2.尚硅谷大数据学科--核心框架\\Flink\\Flink_1.17_Review\\flink_knowlege_20240701\\src\\main\\resources\\file\\wc.txt");
+        DataStreamSource<String> stringDataStreamSource = env.readTextFile("flink_knowlege_20240701/src/main/resources/file/wc.txt");
 
         //3.flatMap : line -> (word,1)
         stringDataStreamSource.flatMap(new FlatMapFunction<String, Tuple2<String, Long>>() {
